@@ -4,6 +4,7 @@ import Restaurant from "../../models/Restaurant.js";
 import mailing from "../../config/mailer.js";
 import { emailsAdmin } from "../../config/mailadmin.js";
 import { matchedData, validationResult } from "express-validator";
+import { redisClient } from "../../index.js";
 
 export default function RestaurantController() {
   const uploadRestaurantFiles = async (req, res, next) => {
@@ -255,20 +256,31 @@ export default function RestaurantController() {
   };
 
   const index = async (req, res, next) => {
-    const restaurants = await Restaurant.find({})
-      .populate([
-        "type_cuisines",
-        "type_repas",
-        "regimes",
-        "fonctionnalites",
-        "fichiers",
-      ])
-      .limit(20)
-      .exec();
-    res.status(200).json({
-      message: "Liste des restaurants récupérée",
-      data: restaurants,
-    });
+    try {
+      let data;
+      const restaurants_list = await redisClient.get("restaurants_list");
+      if (restaurants_list) {
+        data = JSON.parse(restaurants_list);
+      } else {
+        data = await Restaurant.find({})
+          .populate([
+            "type_cuisines",
+            "type_repas",
+            "regimes",
+            "fonctionnalites",
+            "fichiers",
+          ])
+          .limit(20)
+          .exec();
+          await redisClient.set("restaurants_list", JSON.stringify(data))
+      }
+      res.status(200).json({
+        message: "Liste des restaurants récupérée",
+        data: data,
+      });
+    } catch (err) {
+      next(err);
+    }
   };
 
   const show = async (req, res, next) => {

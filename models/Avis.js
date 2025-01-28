@@ -18,12 +18,12 @@ const Avisschema = new mongoose.Schema(
     },
     contenu: {
       type: String,
-      validate: {
-        validator: function (value) {
-          return value.length <= 300;
-        },
-        message: (props) => `${props.value} n'est pas une note valide`,
-      },
+      // validate: {
+      //   validator: function (value) {
+      //     return value.length <= 000;
+      //   },
+      //   message: (props) => `${props.value} n'est pas une note valide`,
+      // },
     },
     fichiers: [
       {
@@ -32,6 +32,16 @@ const Avisschema = new mongoose.Schema(
         required: true,
       },
     ],
+    statut: {
+      type: String,
+      validate: {
+        validator: function (value) {
+          return ["envoyer", "valider", "rejeter"];
+        },
+        message: (props) => "Statut " + props.value + " non valide",
+      },
+      default: "envoyer",
+    },
   },
   {
     timestamps: true,

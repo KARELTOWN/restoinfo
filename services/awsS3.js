@@ -12,6 +12,7 @@ import { __dirname } from "../index.js";
 import FileRestaurant from "../models/FileRestaurant.js";
 import Restaurant from "../models/Restaurant.js";
 import { Schema, SchemaType } from "mongoose";
+import FileAvis from "../models/FileAvis.js";
 configDotenv();
 
 // upload file in local storage
@@ -41,7 +42,11 @@ export const uploadFileUser = multer({
     acl: "public-read",
     contentType: multerS3.AUTO_CONTENT_TYPE,
     metadata: function (req, file, cb) {
-      cb(null, { original_name: file.originalname });
+      const sanitizedOriginalName = file.originalname.replace(
+        /[^a-zA-Z0-9._-]/g,
+        "_"
+      );
+      cb(null, { original_name: sanitizedOriginalName });
     },
     key: function (req, file, cb) {
       const mimetype = file.mimetype.split("/");
@@ -74,7 +79,11 @@ export const uploadFileRestaurant = multer({
     acl: "public-read",
     contentType: multerS3.AUTO_CONTENT_TYPE,
     metadata: function (req, file, cb) {
-      cb(null, { original_name: file.originalname });
+      const sanitizedOriginalName = file.originalname.replace(
+        /[^a-zA-Z0-9._-]/g,
+        "_"
+      );
+      cb(null, { original_name: sanitizedOriginalName });
     },
     key: function (req, file, cb) {
       cb(
@@ -142,3 +151,46 @@ export const deleteRestaurantFile = async (req, res, next) => {
     next(err);
   }
 };
+
+export const uploadFileAvis = multer({
+  storage: multerS3({
+    s3: clientS3,
+    bucket: process.env.AWS_BUCKET,
+    acl: "public-read",
+    contentType: multerS3.AUTO_CONTENT_TYPE,
+    metadata: function (req, file, cb) {
+      const sanitizedOriginalName = file.originalname.replace(
+        /[^a-zA-Z0-9._-]/g,
+        "_"
+      );
+      cb(null, { originalname: sanitizedOriginalName });
+    },
+    key: function (req, file, cb) {
+      cb(null, "avis/" + randomUUID() + "" + Date.now());
+    },
+  }),
+  limits: { fieldSize: 500 * 1024 * 1024 },
+  fileFilter: function (req, file, cb) {
+    const types = [
+      "image.jpg",
+      "image/jpeg",
+      "image/png",
+      "video/mp4",
+      "video/webm",
+      "video/3gpp",
+      "video/mpeg",
+      "video/3gpp2",
+    ];
+    if (!types.includes(file.mimetype)) {
+      cb(
+        new Error(
+          "Les formats de fichiers autorisés : " +
+            "image.jpg, image/jpeg, image/png, video/mp4, video/webm, video/3gpp, video/mpeg, video/3gpp2"
+        ),
+        false
+      );
+    } else {
+      cb(null, true);
+    }
+  },
+});
